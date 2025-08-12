@@ -1,0 +1,81 @@
+<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GQoL Gothenburg-inspired logo">
+  <defs>
+    <!-- Gothenburg blues -->
+    <linearGradient id="gbgBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0051A8"/>
+      <stop offset="100%" stop-color="#0077CC"/>
+    </linearGradient>
+
+    <!-- Shield shape as a reusable path and clip -->
+    <path id="shieldPath" d="M120 20
+      C 150 20, 178 36, 180 64
+      L 180 116
+      C 180 148, 150 174, 120 190
+      C 90 174, 60 148, 60 116
+      L 60 64
+      C 62 36, 90 20, 120 20 Z"/>
+    <clipPath id="shieldClip">
+      <use href="#shieldPath"/>
+    </clipPath>
+
+    <!-- Soft elevation -->
+    <filter id="elev" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(0,81,168,0.35)"/>
+    </filter>
+
+    <!-- Text shadow for legibility -->
+    <filter id="textShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+  </defs>
+
+  <!-- Crown (subtle, abstract) -->
+  <g transform="translate(120,18)">
+    <path d="M -28 22 L -18 8 L -6 18 L 6 8 L 18 18 L 28 6 L 28 28 L -28 28 Z"
+          fill="#FDB813" opacity="0.95"/>
+    <circle cx="-18" cy="8" r="2.6" fill="#FFD666"/>
+    <circle cx="6" cy="8" r="2.6" fill="#FFD666"/>
+    <circle cx="28" cy="6" r="2.6" fill="#FFD666"/>
+  </g>
+
+  <!-- Shield base -->
+  <use href="#shieldPath" fill="url(#gbgBlue)" filter="url(#elev)"/>
+
+  <!-- Shield outline (bold, city-style) -->
+  <use href="#shieldPath" fill="none" stroke="#FFFFFF" stroke-width="6" opacity="0.95"/>
+  <use href="#shieldPath" fill="none" stroke="#003B73" stroke-width="3"/>
+
+  <!-- White stripes clipped to shield (city color motif) -->
+  <g clip-path="url(#shieldClip)">
+    <rect x="50" y="18" width="140" height="176" fill="none"/>
+    <g opacity="0.9">
+      <rect x="68" y="24" width="14" height="180" fill="#FFFFFF"/>
+      <rect x="98" y="24" width="14" height="180" fill="#FFFFFF"/>
+      <rect x="128" y="24" width="14" height="180" fill="#FFFFFF"/>
+      <rect x="158" y="24" width="14" height="180" fill="#FFFFFF"/>
+    </g>
+    <!-- Subtle overlay to blend stripes with shield curvature -->
+    <linearGradient id="vignette" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.06)"/>
+      <stop offset="50%" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.08)"/>
+    </linearGradient>
+    <use href="#shieldPath" fill="url(#vignette)"/>
+  </g>
+
+  <!-- Maritime wave inside shield -->
+  <g clip-path="url(#shieldClip)">
+    <path d="M 72 140 Q 96 134 120 140 Q 144 146 168 140"
+          fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" opacity="0.92"/>
+    <path d="M 82 152 Q 101 147 120 152 Q 139 157 158 152"
+          fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+  </g>
+
+  <!-- GQoL wordmark -->
+  <g transform="translate(120,114)" filter="url(#textShadow)">
+    <text x="0" y="0" text-anchor="middle" font-family="'Inter', 'Roboto', 'Segoe UI', Arial, sans-serif"
+          font-size="28" font-weight="800" fill="#0A1A2F" stroke="#FFFFFF" stroke-width="2" paint-order="stroke fill" letter-spacing="1.5">GQoL</text>
+  </g>
+
+  <!-- Remove fine highlight; replaced by bold outline above -->
+</svg>

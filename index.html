@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gothenburg Quality of Life Map</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            background: #fafafa;
+            color: #1c1b1f;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 24px;
+            font-weight: 600;
+            color: #1c1b1f;
+            letter-spacing: 0.15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .logo:hover {
+            transform: translateY(-1px);
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+            margin-right: 12px;
+            display: block;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .search-container {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+            margin: 0 24px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 20px 16px 48px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            border-radius: 28px;
+            font-size: 16px;
+            background: white;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #1c1b1f;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #6750a4;
+            box-shadow: 0 0 0 4px rgba(103, 80, 164, 0.12);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 16px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-button {
+            width: 48px;
+            height: 48px;
+            background: rgba(103, 80, 164, 0.08);
+            border: none;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #6750a4;
+            font-size: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+        }
+
+        .control-button:hover {
+            background: rgba(103, 80, 164, 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .control-button.active {
+            background: #6750a4;
+            color: white;
+            box-shadow: 0 2px 4px rgba(103, 80, 164, 0.3);
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            min-width: 200px;
+        }
+
+        .legend-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        .legend-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1c1b1f;
+            flex: 1;
+        }
+
+        .legend-selector {
+            background: rgba(103, 80, 164, 0.08);
+            border: 1px solid rgba(103, 80, 164, 0.12);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: #6750a4;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 80px;
+        }
+
+        .legend-selector:hover {
+            background: rgba(103, 80, 164, 0.12);
+        }
+
+        .legend-selector:focus {
+            outline: none;
+            border-color: #6750a4;
+            box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.12);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #1c1b1f;
+            font-weight: 500;
+        }
+
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            margin-right: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12), -4px 0 16px rgba(0, 0, 0, 0.08);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            background: linear-gradient(135deg, #6750a4 0%, #7f67be 100%);
+            color: white;
+            position: relative;
+        }
+
+        .sidebar-title {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 500;
+            letter-spacing: 0.15px;
+        }
+
+        .sidebar-subtitle {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 16px;
+            font-weight: 400;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.12);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 18px;
+        }
+
+        .close-button:hover {
+            background: rgba(255, 255, 255, 0.24);
+            transform: scale(1.1);
+        }
+
+        .sidebar-content {
+            padding: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            color: white;
+            font-size: 20px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            color: #1c1b1f;
+            letter-spacing: 0.15px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 500;
+            color: #1c1b1f;
+            margin-bottom: 12px;
+            letter-spacing: -0.25px;
+        }
+
+        .stat-description {
+            margin: 0;
+            color: #49454f;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .add-to-comparison-btn {
+            background: linear-gradient(135deg, #6750a4 0%, #7f67be 100%);
+            color: white;
+            border: none;
+            border-radius: 28px;
+            padding: 16px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 24px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(103, 80, 164, 0.3);
+            letter-spacing: 0.15px;
+        }
+
+        .add-to-comparison-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(103, 80, 164, 0.4);
+        }
+
+        .add-to-comparison-btn:disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .comparison-status {
+            margin-top: 12px;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .comparison-status.info {
+            background: rgba(103, 80, 164, 0.08);
+            color: #6750a4;
+            border: 1px solid rgba(103, 80, 164, 0.12);
+        }
+
+        .comparison-status.success {
+            background: rgba(34, 197, 94, 0.08);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.12);
+        }
+
+        .comparison-status.warning {
+            background: rgba(245, 115, 22, 0.08);
+            color: #f97316;
+            border: 1px solid rgba(245, 115, 22, 0.12);
+        }
+
+        .info-box {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+        }
+
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        /* Comparison Panel Styles */
+        .comparison-panel {
+            position: fixed;
+            bottom: -500px;
+            left: 0;
+            right: 0;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12), 0 -4px 16px rgba(0, 0, 0, 0.08);
+            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .comparison-panel.open {
+            bottom: 0;
+        }
+
+        .comparison-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            background: linear-gradient(135deg, #6750a4 0%, #7f67be 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .comparison-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: 0.15px;
+        }
+
+        .comparison-close {
+            background: rgba(255, 255, 255, 0.12);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 18px;
+        }
+
+        .comparison-close:hover {
+            background: rgba(255, 255, 255, 0.24);
+            transform: scale(1.1);
+        }
+
+        .comparison-content {
+            padding: 24px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .comparison-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .comparison-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .comparison-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .area-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+        .area-name {
+            font-size: 20px;
+            font-weight: 500;
+            color: #1c1b1f;
+            letter-spacing: 0.15px;
+        }
+
+        .comparison-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .comparison-stat {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .comparison-stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .comparison-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .comparison-chart {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: 20px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: end;
+            gap: 8px;
+            height: 120px;
+            padding: 20px 0;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            min-height: 20px;
+        }
+
+        .chart-bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .chart-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .selected-areas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .selected-area-tag {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .remove-area {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .comparison-instructions {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="header">
+            <div class="logo">
+                <img src="gqol-goteborg-inspired.svg" alt="GQoL" class="logo-img"/>
+                Gothenburg QoL Map
+            </div>
+        
+        <div class="search-container">
+            <div class="search-icon">🔍</div>
+            <input type="text" class="search-input" placeholder="Search areas..." id="searchInput">
+        </div>
+        
+        <div class="controls">
+            <button class="control-button" id="languageBtn" title="Switch Language">🇸🇪</button>
+            <button class="control-button" id="compareBtn" title="Compare Areas">⚖️</button>
+        </div>
+    </div>
+
+
+
+    <div class="legend">
+        <div class="legend-header">
+            <h4 class="legend-title">Crime Level Legend</h4>
+            <select class="legend-selector" id="legendSelector" onchange="updateLegendDisplay()">
+                <option value="crime">Crime Level</option>
+                <option value="education">Education Level</option>
+                <option value="income">Income Level</option>
+                <option value="population">Population</option>
+            </select>
+        </div>
+        <div id="legendItems">
+            <div class="legend-item">
+                <div class="color-box" style="background: #4ade80;"></div>
+                <span>Low (0-25)</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #22c55e;"></div>
+                <span>Medium (26-50)</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #eab308;"></div>
+                <span>High (51-75)</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #ef4444;"></div>
+                <span>Very High (76-100)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title" id="sidebarTitle">Area Details</h2>
+            <p class="sidebar-subtitle">QoL Statistics</p>
+            <button class="close-button" onclick="closeSidebar()">×</button>
+        </div>
+        <div class="sidebar-content" id="sidebarContent">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Comparison Panel -->
+    <div class="comparison-panel" id="comparisonPanel">
+        <div class="comparison-header">
+            <h3 class="comparison-title">Area Comparison</h3>
+            <button class="comparison-close" onclick="closeComparison()">×</button>
+        </div>
+        <div class="comparison-content" id="comparisonContent">
+            <div class="comparison-instructions">
+                Click on areas to add them to the comparison. Select 2-4 areas to compare their statistics.
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div>Loading area locations...</div>
+    </div>
+
+    <script>
+        // Gothenburg area data with accurate coordinates
+        const areaData = [
+            {
+                id: 'hisingen',
+                name: 'Hisingen',
+                crimeLevel: 65,
+                tertiaryEducation: 60,
+                medianIncome: 320000,
+                population: 38000,
+                area: 4.5,
+                center: [11.8830, 57.7670],
+                radius: 0.007
+            },
+            {
+                id: 'backa',
+                name: 'Backa',
+                crimeLevel: 70,
+                tertiaryEducation: 45,
+                medianIncome: 280000,
+                population: 25000,
+                area: 3.2,
+                center: [11.9667, 57.7333],
+                radius: 0.007
+            },
+            {
+                id: 'kallebäck',
+                name: 'Kallebäck',
+                crimeLevel: 40,
+                tertiaryEducation: 75,
+                medianIncome: 410000,
+                population: 18000,
+                area: 2.1,
+                center: [12.00972, 57.68333],
+                radius: 0.007
+            },
+            {
+                id: 'kortedala',
+                name: 'Kortedala',
+                crimeLevel: 60,
+                tertiaryEducation: 55,
+                medianIncome: 310000,
+                population: 32000,
+                area: 2.8,
+                center: [12.0361, 57.7569],
+                radius: 0.007
+            },
+            {
+                id: 'bergsjön',
+                name: 'Bergsjön',
+                crimeLevel: 75,
+                tertiaryEducation: 50,
+                medianIncome: 290000,
+                population: 28000,
+                area: 3.5,
+                center: [12.0746, 57.7569],
+                radius: 0.007
+            },
+            {
+                id: 'angered',
+                name: 'Angered',
+                crimeLevel: 80,
+                tertiaryEducation: 40,
+                medianIncome: 260000,
+                population: 35000,
+                area: 4.2,
+                center: [12.0340, 57.8260],
+                radius: 0.007
+            },
+            {
+                id: 'majorna',
+                name: 'Majorna',
+                crimeLevel: 35,
+                tertiaryEducation: 80,
+                medianIncome: 420000,
+                population: 22000,
+                area: 2.3,
+                center: [11.9170, 57.6920],
+                radius: 0.007
+            },
+            {
+                id: 'askim',
+                name: 'Askim',
+                crimeLevel: 25,
+                tertiaryEducation: 85,
+                medianIncome: 480000,
+                population: 15000,
+                area: 1.8,
+                center: [11.9000, 57.6300],
+                radius: 0.007
+            },
+            {
+                id: 'landala',
+                name: 'Landala',
+                crimeLevel: 45,
+                tertiaryEducation: 70,
+                medianIncome: 380000,
+                population: 19000,
+                area: 2.0,
+                center: [11.9783, 57.6994],
+                radius: 0.007
+            },
+            {
+                id: 'eriksberg',
+                name: 'Eriksberg',
+                crimeLevel: 30,
+                tertiaryEducation: 82,
+                medianIncome: 450000,
+                population: 16000,
+                area: 1.9,
+                center: [11.9200, 57.7000],
+                radius: 0.007
+            }
+        ];
+
+        // Gothenburg coordinates
+        const GOTHENBURG_CENTER = [11.9746, 57.7089];
+
+        // Initialize map with your Mapbox token
+        mapboxgl.accessToken = 'pk.eyJ1IjoiampnZXJtaXMiLCJhIjoiY21keGdwN2x6MWl2dTJtcXlxNnA5Nm95diJ9.YHpPz4HkXBihGl7FuPYbLQ';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v11',
+            center: GOTHENBURG_CENTER,
+            zoom: 10,
+            attributionControl: false
+        });
+
+        let selectedArea = null;
+        let comparisonMode = false;
+        let selectedAreas = [];
+        let currentLanguage = 'en'; // 'en' or 'sv'
+
+        // Language data
+        const translations = {
+            en: {
+                title: 'Gothenburg Quality of Life Map',
+                headerTitle: 'Gothenburg QoL Map',
+                searchPlaceholder: 'Search areas...',
+                compareAreas: 'Compare Areas',
+                switchLanguage: 'Switch Language',
+                areaDetails: 'Area Details',
+                qolStats: 'QoL Statistics',
+                crimeLevel: 'Crime Level',
+                crimeDescription: 'Crime level based on reported incidents per capita',
+                education: 'Education',
+                educationDescription: 'Percentage of population with tertiary education',
+                medianIncome: 'Median Income',
+                incomeDescription: 'Annual median household income',
+                population: 'Population',
+                populationDescription: 'Total population in the area',
+                qualityOfLife: 'Quality of Life Index',
+                qolDescription: 'Composite score based on crime, education, and income',
+                addToComparison: 'Add to Comparison',
+                removeFromComparison: 'Remove from Comparison',
+                inComparison: 'This area is currently in your comparison',
+                areasSelected: 'areas selected',
+                maxAreasWarning: 'You can only compare up to 4 areas. Remove one to add this area.',
+                comparisonTitle: 'Area Comparison',
+                comparisonInstructions: 'Click on areas to add them to the comparison. Select 2-4 areas to compare their statistics.',
+                crimeComparison: 'Crime Level Comparison',
+                educationComparison: 'Education Level Comparison',
+                incomeComparison: 'Income Comparison (SEK)',
+                legendTitle: 'Crime Level Legend',
+                low: 'Low (0-25)',
+                medium: 'Medium (26-50)',
+                high: 'High (51-75)',
+                veryHigh: 'Very High (76-100)'
+            },
+            sv: {
+                title: 'Göteborg Livskvalitetskarta',
+                headerTitle: 'Göteborg Livskvalitetskarta',
+                searchPlaceholder: 'Sök områden...',
+                compareAreas: 'Jämför områden',
+                switchLanguage: 'Byt språk',
+                areaDetails: 'Områdesdetaljer',
+                qolStats: 'Livskvalitetsstatistik',
+                crimeLevel: 'Brottsnivå',
+                crimeDescription: 'Brottsnivå baserat på rapporterade incidenter per capita',
+                education: 'Utbildning',
+                educationDescription: 'Procent av befolkningen med högre utbildning',
+                medianIncome: 'Medianinkomst',
+                incomeDescription: 'Årlig medianinkomst per hushåll',
+                population: 'Befolkning',
+                populationDescription: 'Total befolkning i området',
+                qualityOfLife: 'Livskvalitetsindex',
+                qolDescription: 'Sammansatt poäng baserat på brott, utbildning och inkomst',
+                addToComparison: 'Lägg till i jämförelse',
+                removeFromComparison: 'Ta bort från jämförelse',
+                inComparison: 'Detta område finns för närvarande i din jämförelse',
+                areasSelected: 'områden valda',
+                maxAreasWarning: 'Du kan bara jämföra upp till 4 områden. Ta bort ett för att lägga till detta område.',
+                comparisonTitle: 'Områdesjämförelse',
+                comparisonInstructions: 'Klicka på områden för att lägga till dem i jämförelsen. Välj 2-4 områden för att jämföra deras statistik.',
+                crimeComparison: 'Brottsnivåjämförelse',
+                educationComparison: 'Utbildningsnivåjämförelse',
+                incomeComparison: 'Inkomstjämförelse (SEK)',
+                legendTitle: 'Brottsnivåförklaring',
+                low: 'Låg (0-25)',
+                medium: 'Medium (26-50)',
+                high: 'Hög (51-75)',
+                veryHigh: 'Mycket hög (76-100)'
+            },
+            mk: {
+                title: 'Карта на квалитет на живот во Гетеборг',
+                headerTitle: 'Гетеборг Квалитет на Живот',
+                searchPlaceholder: 'Пребарај области...',
+                compareAreas: 'Спореди области',
+                switchLanguage: 'Промени јазик',
+                areaDetails: 'Детали за област',
+                qolStats: 'Статистика за квалитет на живот',
+                crimeLevel: 'Ниво на криминал',
+                crimeDescription: 'Ниво на криминал според пријавени инциденти по жител',
+                education: 'Образование',
+                educationDescription: 'Процент со високо образование',
+                medianIncome: 'Медијан приход',
+                incomeDescription: 'Годишен медијан приход по домаќинство',
+                population: 'Население',
+                populationDescription: 'Вкупно население во областа',
+                qualityOfLife: 'Индекс на квалитет на живот',
+                qolDescription: 'Составен резултат базиран на криминал, образование и приход',
+                addToComparison: 'Додај во споредба',
+                removeFromComparison: 'Отстрани од споредба',
+                inComparison: 'Оваа област е во вашата споредба',
+                areasSelected: 'области избрани',
+                maxAreasWarning: 'Можете да споредите најмногу 4 области. Отстранете една за да додадете нова.',
+                comparisonTitle: 'Споредба на области',
+                comparisonInstructions: 'Кликнете на области за да ги додадете во споредбата. Изберете 2-4 области за споредба.',
+                crimeComparison: 'Споредба на ниво на криминал',
+                educationComparison: 'Споредба на образовно ниво',
+                incomeComparison: 'Споредба на приходи (SEK)',
+                legendTitle: 'Легенда за ниво на криминал',
+                low: 'Ниско (0-25)',
+                medium: 'Средно (26-50)',
+                high: 'Високо (51-75)',
+                veryHigh: 'Многу високо (76-100)'
+            }
+        };
+
+        // Function to translate text
+        function t(key) {
+            return translations[currentLanguage][key] || translations.en[key] || key;
+        }
+
+        // Function to update all UI elements with current language
+        function updateLanguage() {
+            // Update page title
+            document.title = t('title');
+            
+            // Update header
+            document.querySelector('.logo').innerHTML = `
+                <img src="gqol-goteborg-inspired.svg" alt="GQoL" class="logo-img"/>
+                ${t('headerTitle')}
+            `;
+            
+            // Update search placeholder
+            document.getElementById('searchInput').placeholder = t('searchPlaceholder');
+            
+            // Update button titles and flags
+            document.getElementById('languageBtn').title = t('switchLanguage');
+            document.getElementById('languageBtn').textContent = currentLanguage === 'en' ? '🇸🇪' : '🇬🇧';
+            document.getElementById('compareBtn').title = t('compareAreas');
+            
+            // Update legend selector options
+            const selector = document.getElementById('legendSelector');
+            if (selector) {
+                const options = selector.querySelectorAll('option');
+                options[0].textContent = currentLanguage === 'sv' ? 'Brottsnivå' : 'Crime Level';
+                options[1].textContent = currentLanguage === 'sv' ? 'Utbildningsnivå' : 'Education Level';
+                options[2].textContent = currentLanguage === 'sv' ? 'Inkomstnivå' : 'Income Level';
+                options[3].textContent = currentLanguage === 'sv' ? 'Befolkning' : 'Population';
+                
+                // Update legend display with current language
+                updateLegendDisplay();
+            }
+            
+            // Update comparison panel
+            document.querySelector('.comparison-title').textContent = t('comparisonTitle');
+            
+            // Update sidebar if open
+            if (document.getElementById('sidebar').classList.contains('open')) {
+                document.querySelector('.sidebar-subtitle').textContent = t('qolStats');
+                if (selectedArea) {
+                    showAreaDetails(selectedArea);
+                }
+            }
+            
+            // Update comparison panel if open
+            if (document.getElementById('comparisonPanel').classList.contains('open')) {
+                updateComparisonPanel();
+            }
+        }
+
+        // Function to toggle language
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'sv' : 'en';
+            updateLanguage();
+        }
+
+        // Function to update legend display based on selected statistic
+        function updateLegendDisplay() {
+            const selector = document.getElementById('legendSelector');
+            const selectedStat = selector.value;
+            const legendTitle = document.querySelector('.legend-title');
+            const legendItems = document.getElementById('legendItems');
+            
+            // Define legend configurations for each statistic
+            const legendConfigs = {
+                crime: {
+                    title: {
+                        en: 'Crime Level Legend',
+                        sv: 'Brottsnivåförklaring'
+                    },
+                    items: [
+                        { color: '#4ade80', label: { en: 'Low (0-25)', sv: 'Låg (0-25)' } },
+                        { color: '#22c55e', label: { en: 'Medium (26-50)', sv: 'Medium (26-50)' } },
+                        { color: '#eab308', label: { en: 'High (51-75)', sv: 'Hög (51-75)' } },
+                        { color: '#ef4444', label: { en: 'Very High (76-100)', sv: 'Mycket hög (76-100)' } }
+                    ]
+                },
+                education: {
+                    title: {
+                        en: 'Education Level Legend',
+                        sv: 'Utbildningsnivåförklaring'
+                    },
+                    items: [
+                        { color: '#ef4444', label: { en: 'Low (0-25%)', sv: 'Låg (0-25%)' } },
+                        { color: '#eab308', label: { en: 'Medium (26-50%)', sv: 'Medium (26-50%)' } },
+                        { color: '#22c55e', label: { en: 'High (51-75%)', sv: 'Hög (51-75%)' } },
+                        { color: '#4ade80', label: { en: 'Very High (76-100%)', sv: 'Mycket hög (76-100%)' } }
+                    ]
+                },
+                income: {
+                    title: {
+                        en: 'Income Level Legend',
+                        sv: 'Inkomstförklaring'
+                    },
+                    items: [
+                        { color: '#ef4444', label: { en: 'Low (<250k SEK)', sv: 'Låg (<250k SEK)' } },
+                        { color: '#eab308', label: { en: 'Medium (250-350k)', sv: 'Medium (250-350k)' } },
+                        { color: '#22c55e', label: { en: 'High (350-450k)', sv: 'Hög (350-450k)' } },
+                        { color: '#4ade80', label: { en: 'Very High (>450k)', sv: 'Mycket hög (>450k)' } }
+                    ]
+                },
+                population: {
+                    title: {
+                        en: 'Population Legend',
+                        sv: 'Befolkningsförklaring'
+                    },
+                    items: [
+                        { color: '#e0e7ff', label: { en: 'Small (<20k)', sv: 'Liten (<20k)' } },
+                        { color: '#a5b4fc', label: { en: 'Medium (20-30k)', sv: 'Medium (20-30k)' } },
+                        { color: '#6366f1', label: { en: 'Large (30-40k)', sv: 'Stor (30-40k)' } },
+                        { color: '#4338ca', label: { en: 'Very Large (>40k)', sv: 'Mycket stor (>40k)' } }
+                    ]
+                }
+            };
+            
+            const config = legendConfigs[selectedStat];
+            if (config) {
+                // Update title
+                legendTitle.textContent = config.title[currentLanguage] || config.title.en;
+                
+                // Update items
+                legendItems.innerHTML = config.items.map(item => `
+                    <div class="legend-item">
+                        <div class="color-box" style="background: ${item.color};"></div>
+                        <span>${item.label[currentLanguage] || item.label.en}</span>
+                    </div>
+                `).join('');
+                
+                // Update map colors to match the selected statistic
+                updateMapColors();
+            }
+        }
+
+        // Function to get color based on statistic type and value
+        function getColorForStatistic(statType, value) {
+            const colorConfigs = {
+                crime: {
+                    colors: ['#4ade80', '#22c55e', '#eab308', '#ef4444'],
+                    ranges: [25, 50, 75, 100]
+                },
+                education: {
+                    colors: ['#ef4444', '#eab308', '#22c55e', '#4ade80'],
+                    ranges: [25, 50, 75, 100]
+                },
+                income: {
+                    colors: ['#ef4444', '#eab308', '#22c55e', '#4ade80'],
+                    ranges: [250000, 350000, 450000, Infinity]
+                },
+                population: {
+                    colors: ['#e0e7ff', '#a5b4fc', '#6366f1', '#4338ca'],
+                    ranges: [20000, 30000, 40000, Infinity]
+                }
+            };
+            
+            const config = colorConfigs[statType];
+            if (!config) return '#6366f1'; // Default color
+            
+            for (let i = 0; i < config.ranges.length; i++) {
+                if (value <= config.ranges[i]) {
+                    return config.colors[i];
+                }
+            }
+            
+            return config.colors[config.colors.length - 1];
+        }
+
+        // Function to update map colors based on selected statistic
+        function updateMapColors() {
+            const selector = document.getElementById('legendSelector');
+            const selectedStat = selector.value;
+            
+            // Get the current map data
+            const source = map.getSource('areas');
+            if (!source) return;
+            
+            const data = source._data;
+            
+            // Update colors for each feature
+            data.features.forEach(feature => {
+                let value;
+                switch(selectedStat) {
+                    case 'crime':
+                        value = feature.properties.crimeLevel;
+                        break;
+                    case 'education':
+                        value = feature.properties.tertiaryEducation;
+                        break;
+                    case 'income':
+                        value = feature.properties.medianIncome;
+                        break;
+                    case 'population':
+                        value = feature.properties.population;
+                        break;
+                    default:
+                        value = feature.properties.crimeLevel;
+                }
+                
+                const color = getColorForStatistic(selectedStat, value);
+                feature.properties.currentColor = color;
+            });
+            
+            // Update the map source
+            map.getSource('areas').setData(data);
+        }
+
+        // Function to create circle around a point
+        function createCircle(center, radius, numPoints = 32) {
+            const [lng, lat] = center;
+            const points = [];
+            
+            for (let i = 0; i <= numPoints; i++) {
+                const angle = (i / numPoints) * 2 * Math.PI;
+                const lngOffset = radius * Math.cos(angle) / Math.cos(lat * Math.PI / 180);
+                const latOffset = radius * Math.sin(angle);
+                
+                points.push([lng + lngOffset, lat + latOffset]);
+            }
+            
+            return points;
+        }
+
+        // Function to create area boundaries
+        function createAreaBoundaries() {
+            const features = [];
+            
+            for (const area of areaData) {
+                const circle = createCircle(area.center, area.radius);
+                
+                // Calculate QoL score
+                const qolScore = Math.round(
+                    (100 - area.crimeLevel) * 0.4 +
+                    area.tertiaryEducation * 0.3 +
+                    (area.medianIncome / 500000) * 100 * 0.3
+                );
+
+                // Set initial color based on crime level (default metric)
+                const initialColor = getColorForStatistic('crime', area.crimeLevel);
+
+                features.push({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [circle]
+                    },
+                    properties: {
+                        id: area.id,
+                        name: area.name,
+                        crimeLevel: area.crimeLevel,
+                        tertiaryEducation: area.tertiaryEducation,
+                        medianIncome: area.medianIncome,
+                        population: area.population,
+                        area: area.area,
+                        center: area.center,
+                        qolScore: qolScore.toString(),
+                        currentColor: initialColor
+                    }
+                });
+            }
+            
+            return features;
+        }
+
+        map.on('load', () => {
+            // Show loading indicator
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                // Create area boundaries
+                const features = createAreaBoundaries();
+                
+                // Add custom source for areas
+                map.addSource('areas', {
+                    type: 'geojson',
+                    data: {
+                        type: 'FeatureCollection',
+                        features: features
+                    }
+                });
+
+                // Add fill layer with dynamic colors
+                map.addLayer({
+                    id: 'areas-fill',
+                    type: 'fill',
+                    source: 'areas',
+                    paint: {
+                        'fill-color': [
+                            'case',
+                            ['has', 'currentColor'],
+                            ['get', 'currentColor'],
+                            '#6366f1' // Default color fallback
+                        ],
+                        'fill-opacity': 0.8,
+                        'fill-outline-color': '#ffffff'
+                    }
+                });
+
+                // Add outline layer
+                map.addLayer({
+                    id: 'areas-outline',
+                    type: 'line',
+                    source: 'areas',
+                    paint: {
+                        'line-color': '#ffffff',
+                        'line-width': 2,
+                        'line-opacity': 0.9
+                    }
+                });
+
+                // Add shadow layer for levitating effect
+                map.addLayer({
+                    id: 'areas-shadow',
+                    type: 'fill',
+                    source: 'areas',
+                    paint: {
+                        'fill-color': '#000000',
+                        'fill-opacity': 0
+                    },
+                    filter: ['==', ['get', 'id'], 'none']
+                });
+
+                // Add text labels for QoL scores
+                map.addLayer({
+                    id: 'areas-text',
+                    type: 'symbol',
+                    source: 'areas',
+                    layout: {
+                        'text-field': ['get', 'qolScore'],
+                        'text-font': ['Roboto Medium'],
+                        'text-size': 14,
+                        'text-anchor': 'center',
+                        'text-allow-overlap': true
+                    },
+                    paint: {
+                        'text-color': '#ffffff',
+                        'text-halo-color': '#000000',
+                        'text-halo-width': 1
+                    }
+                });
+
+                // Enhanced hover effects with levitation
+                map.on('mouseenter', 'areas-fill', () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                    
+                    // Increase opacity and add shadow for levitating effect
+                    map.setPaintProperty('areas-fill', 'fill-opacity', 0.95);
+                    map.setPaintProperty('areas-outline', 'line-width', 3);
+                    map.setPaintProperty('areas-outline', 'line-opacity', 1);
+                    
+                    // Add shadow effect
+                    const hoveredFeature = map.queryRenderedFeatures({ layers: ['areas-fill'] })[0];
+                    if (hoveredFeature) {
+                        map.setFilter('areas-shadow', ['==', ['get', 'id'], hoveredFeature.properties.id]);
+                        map.setPaintProperty('areas-shadow', 'fill-opacity', 0.3);
+                    }
+                });
+
+                map.on('mouseleave', 'areas-fill', () => {
+                    map.getCanvas().style.cursor = '';
+                    
+                    // Reset to normal state
+                    map.setPaintProperty('areas-fill', 'fill-opacity', 0.8);
+                    map.setPaintProperty('areas-outline', 'line-width', 2);
+                    map.setPaintProperty('areas-outline', 'line-opacity', 0.9);
+                    
+                    // Remove shadow effect
+                    map.setFilter('areas-shadow', ['==', ['get', 'id'], 'none']);
+                    map.setPaintProperty('areas-shadow', 'fill-opacity', 0);
+                });
+
+                // Add click handler
+                map.on('click', 'areas-fill', (e) => {
+                    if (e.features && e.features[0]) {
+                        const feature = e.features[0];
+                        const area = areaData.find(a => a.id === feature.properties.id);
+                        if (area) {
+                            if (comparisonMode) {
+                                toggleAreaSelection(area);
+                            } else {
+                                // Check if clicking on already selected area
+                                if (selectedArea && selectedArea.id === area.id) {
+                                    // Unselect the area
+                                    selectedArea = null;
+                                    document.getElementById('sidebar').classList.remove('open');
+                                } else {
+                                    showAreaDetails(area);
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                
+                // Initialize language
+                updateLanguage();
+                
+                // Initialize legend display
+                updateLegendDisplay();
+                
+            } catch (error) {
+                console.error('Error loading area boundaries:', error);
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        function getCrimeLevelColor(level) {
+            if (level <= 25) return '#4ade80';
+            if (level <= 50) return '#22c55e';
+            if (level <= 75) return '#eab308';
+            return '#ef4444';
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('sv-SE').format(num);
+        }
+
+        function showAreaDetails(area) {
+            selectedArea = area;
+            
+            // Calculate Quality of Life Index
+            const qolScore = Math.round(
+                (100 - area.crimeLevel) * 0.4 +
+                area.tertiaryEducation * 0.3 +
+                (area.medianIncome / 500000) * 100 * 0.3
+            );
+            
+            document.getElementById('sidebarTitle').innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="
+                        width: 48px;
+                        height: 48px;
+                        border-radius: 50%;
+                        background: linear-gradient(135deg, #6750a4 0%, #7f67be 100%);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 18px;
+                        font-weight: 500;
+                        box-shadow: 0 2px 4px rgba(103, 80, 164, 0.3);
+                    ">${qolScore}</div>
+                    <span>${area.name}</span>
+                </div>
+            `;
+            
+            const isInComparison = selectedAreas.findIndex(a => a.id === area.id) > -1;
+            const buttonText = isInComparison ? t('removeFromComparison') : t('addToComparison');
+            const buttonIcon = isInComparison ? '🗑️' : '➕';
+            const isDisabled = !isInComparison && selectedAreas.length >= 4;
+            
+            const content = `
+                <button class="add-to-comparison-btn" onclick="toggleAreaSelectionFromSidebar('${area.id}')" ${isDisabled ? 'disabled' : ''}>
+                    <span>${buttonText}</span>
+                    <span>${buttonIcon}</span>
+                </button>
+                
+                ${isInComparison ? `
+                    <div class="comparison-status info">
+                        ${t('inComparison')} (${selectedAreas.length}/4 ${t('areasSelected')}).
+                    </div>
+                ` : ''}
+                
+                ${!isInComparison && selectedAreas.length >= 4 ? `
+                    <div class="comparison-status warning">
+                        ${t('maxAreasWarning')}
+                    </div>
+                ` : ''}
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: ${getCrimeLevelColor(area.crimeLevel)}">🛡️</div>
+                        <h3 class="stat-title">${t('crimeLevel')}</h3>
+                    </div>
+                    <div class="stat-value" style="color: ${getCrimeLevelColor(area.crimeLevel)}">${area.crimeLevel}/100</div>
+                    <p class="stat-description">${t('crimeDescription')}</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: #8b5cf6">🎓</div>
+                        <h3 class="stat-title">${t('education')}</h3>
+                    </div>
+                    <div class="stat-value">${area.tertiaryEducation}%</div>
+                    <p class="stat-description">${t('educationDescription')}</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: #10b981">💰</div>
+                        <h3 class="stat-title">${t('medianIncome')}</h3>
+                    </div>
+                    <div class="stat-value">${formatNumber(area.medianIncome)} SEK</div>
+                    <p class="stat-description">${t('incomeDescription')}</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: #f59e0b">👥</div>
+                        <h3 class="stat-title">${t('population')}</h3>
+                    </div>
+                    <div class="stat-value">${formatNumber(area.population)}</div>
+                    <p class="stat-description">${t('populationDescription')}</p>
+                </div>
+
+
+            `;
+            
+            document.getElementById('sidebarContent').innerHTML = content;
+            document.getElementById('sidebar').classList.add('open');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            selectedArea = null;
+        }
+
+        // Comparison functions
+        function toggleComparisonMode() {
+            comparisonMode = !comparisonMode;
+            const compareBtn = document.getElementById('compareBtn');
+            
+            if (comparisonMode) {
+                compareBtn.classList.add('active');
+                compareBtn.title = 'Exit Comparison Mode';
+                document.getElementById('comparisonPanel').classList.add('open');
+                selectedAreas = [];
+                updateComparisonPanel();
+            } else {
+                compareBtn.classList.remove('active');
+                compareBtn.title = 'Compare Areas';
+                document.getElementById('comparisonPanel').classList.remove('open');
+                selectedAreas = [];
+                closeSidebar();
+            }
+        }
+
+        function toggleAreaSelection(area) {
+            const index = selectedAreas.findIndex(a => a.id === area.id);
+            
+            if (index > -1) {
+                selectedAreas.splice(index, 1);
+            } else {
+                if (selectedAreas.length < 4) {
+                    selectedAreas.push(area);
+                }
+            }
+            
+            updateComparisonPanel();
+        }
+
+        function toggleAreaSelectionFromSidebar(areaId) {
+            const area = areaData.find(a => a.id === areaId);
+            if (!area) return;
+            
+            const index = selectedAreas.findIndex(a => a.id === areaId);
+            
+            if (index > -1) {
+                selectedAreas.splice(index, 1);
+                showAreaDetails(area); // Refresh the sidebar to show updated button
+            } else {
+                if (selectedAreas.length < 4) {
+                    selectedAreas.push(area);
+                    showAreaDetails(area); // Refresh the sidebar to show updated button
+                    
+                    // Auto-open comparison panel when adding first area
+                    if (selectedAreas.length === 1) {
+                        document.getElementById('comparisonPanel').classList.add('open');
+                    }
+                }
+            }
+            
+            updateComparisonPanel();
+        }
+
+        function updateComparisonPanel() {
+            const content = document.getElementById('comparisonContent');
+            
+            if (selectedAreas.length === 0) {
+                content.innerHTML = `
+                    <div class="comparison-instructions">
+                        ${t('comparisonInstructions')}
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="selected-areas">
+                    ${selectedAreas.map(area => `
+                        <div class="selected-area-tag">
+                            ${area.name}
+                            <button class="remove-area" onclick="removeArea('${area.id}')">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            if (selectedAreas.length >= 2) {
+                html += `
+                    <div class="comparison-grid">
+                        ${selectedAreas.map(area => {
+                            const qolScore = Math.round(
+                                (100 - area.crimeLevel) * 0.4 +
+                                area.tertiaryEducation * 0.3 +
+                                (area.medianIncome / 500000) * 100 * 0.3
+                            );
+                            return `
+                            <div class="comparison-card">
+                                <div class="comparison-card-header">
+                                    <div class="area-color" style="background: ${getCrimeLevelColor(area.crimeLevel)}"></div>
+                                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                        <div class="area-name">${area.name}</div>
+                                        <div style="
+                                            width: 32px;
+                                            height: 32px;
+                                            border-radius: 50%;
+                                            background: linear-gradient(135deg, #6750a4 0%, #7f67be 100%);
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            color: white;
+                                            font-size: 14px;
+                                            font-weight: 500;
+                                            box-shadow: 0 1px 3px rgba(103, 80, 164, 0.3);
+                                        ">${qolScore}</div>
+                                    </div>
+                                </div>
+                                <div class="comparison-stats">
+                                    <div class="comparison-stat">
+                                        <div class="comparison-stat-label">${t('crimeLevel')}</div>
+                                        <div class="comparison-stat-value" style="color: ${getCrimeLevelColor(area.crimeLevel)}">${area.crimeLevel}/100</div>
+                                    </div>
+                                    <div class="comparison-stat">
+                                        <div class="comparison-stat-label">${t('education')}</div>
+                                        <div class="comparison-stat-value">${area.tertiaryEducation}%</div>
+                                    </div>
+                                    <div class="comparison-stat">
+                                        <div class="comparison-stat-label">${t('medianIncome')}</div>
+                                        <div class="comparison-stat-value">${formatNumber(area.medianIncome)}</div>
+                                    </div>
+                                    <div class="comparison-stat">
+                                        <div class="comparison-stat-label">${t('population')}</div>
+                                        <div class="comparison-stat-value">${formatNumber(area.population)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+
+                // Add comparison charts
+                html += createComparisonCharts();
+            }
+
+            content.innerHTML = html;
+        }
+
+        function createComparisonCharts() {
+            const maxCrime = Math.max(...selectedAreas.map(a => a.crimeLevel));
+            const maxEducation = Math.max(...selectedAreas.map(a => a.tertiaryEducation));
+            const maxIncome = Math.max(...selectedAreas.map(a => a.medianIncome));
+            const maxPopulation = Math.max(...selectedAreas.map(a => a.population));
+
+            return `
+                <div class="comparison-chart">
+                    <div class="chart-title">${t('crimeComparison')}</div>
+                    <div class="chart-bars">
+                        ${selectedAreas.map(area => `
+                            <div class="chart-bar" style="height: ${(area.crimeLevel / maxCrime) * 100}%">
+                                <div class="chart-value">${area.crimeLevel}</div>
+                                <div class="chart-bar-label">${area.name}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="comparison-chart">
+                    <div class="chart-title">${t('educationComparison')}</div>
+                    <div class="chart-bars">
+                        ${selectedAreas.map(area => `
+                            <div class="chart-bar" style="height: ${(area.tertiaryEducation / maxEducation) * 100}%">
+                                <div class="chart-value">${area.tertiaryEducation}%</div>
+                                <div class="chart-bar-label">${area.name}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="comparison-chart">
+                    <div class="chart-title">${t('incomeComparison')}</div>
+                    <div class="chart-bars">
+                        ${selectedAreas.map(area => `
+                            <div class="chart-bar" style="height: ${(area.medianIncome / maxIncome) * 100}%">
+                                <div class="chart-value">${formatNumber(area.medianIncome)}</div>
+                                <div class="chart-bar-label">${area.name}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function removeArea(areaId) {
+            selectedAreas = selectedAreas.filter(area => area.id !== areaId);
+            updateComparisonPanel();
+        }
+
+        function closeComparison() {
+            comparisonMode = false;
+            document.getElementById('compareBtn').classList.remove('active');
+            document.getElementById('compareBtn').title = 'Compare Areas';
+            document.getElementById('comparisonPanel').classList.remove('open');
+            selectedAreas = [];
+        }
+
+        // Event listeners
+        document.getElementById('languageBtn').addEventListener('click', toggleLanguage);
+        document.getElementById('compareBtn').addEventListener('click', toggleComparisonMode);
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredAreas = areaData.filter(area => 
+                area.name.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filteredAreas.length > 0 && searchTerm.length > 0) {
+                showAreaDetails(filteredAreas[0]);
+            }
+        });
+    </script>
+</body>
+</html> 
