@@ -1,16 +1,17 @@
 # Gothenburg Quality of Life Map
 
-A modern, full-screen interactive map application focused on Gothenburg, Sweden, displaying crime statistics, education levels, and income data across different city areas.
+A modern, interactive map application displaying quality of life data for Gothenburg, Sweden. Features crime statistics, education levels, and income data with multilingual support and a sleek Material 3 design.
 
 ## Features
 
-- **Interactive Full-Screen Map**: Centered on Gothenburg with smooth navigation
-- **Crime Level Visualization**: Areas colored by crime level (green = low, red = high)
-- **Detailed Area Statistics**: Click on areas to view comprehensive data
-- **Modern UI**: Responsive design with glassmorphism effects
-- **Search Functionality**: Find specific areas quickly
-- **Quality of Life Index**: Composite score based on multiple factors
-- **Standalone HTML**: No build process required - just open the HTML file
+- **Interactive Mapbox Map**: Professional mapping with accurate Gothenburg area locations
+- **Quality of Life Visualization**: Color-coded areas with QoL scores displayed on map
+- **Multilingual Support**: Toggle between English and Swedish with flag indicators
+- **Area Comparison**: Compare up to 4 areas side-by-side with interactive charts
+- **Material 3 Design**: Modern Google Material 3 styling throughout
+- **Gothenburg-Inspired Logo**: Custom SVG logo reflecting city colors and heritage
+- **Responsive Design**: Works seamlessly on desktop and mobile
+- **Zero Build Process**: Single HTML file - just open and run
 
 ## Quick Start
 
@@ -76,16 +77,16 @@ The application uses mock data for demonstration purposes. In a production envir
 
 The application includes data for the following Gothenburg areas:
 
-- **Centrum**: City center with moderate crime levels
-- **Haga**: Historic district with low crime
-- **Linnégatan**: Upscale area with high education levels
-- **Vasastan**: Residential area with good quality of life
-- **Olskroken**: Mixed area with higher crime rates
-- **Angered**: Suburban area with higher crime levels
-- **Bergsjön**: Residential area with moderate statistics
-- **Kortedala**: Suburban area with mixed demographics
-- **Torslanda**: Coastal area with good quality of life
-- **Mölndal**: Adjacent municipality with good statistics
+- **Hisingen**: Northern district with moderate crime levels
+- **Backa**: Northwestern area with mixed statistics
+- **Kallebäck**: Eastern area with low crime and high education
+- **Kortedala**: Northern suburban area with moderate demographics
+- **Bergsjön**: Northeastern district with higher crime rates
+- **Angered**: Northern suburban area with social challenges
+- **Majorna**: Western district with good quality of life
+- **Askim**: Southern area with excellent education levels
+- **Landala**: Central area with moderate statistics
+- **Eriksberg**: Western waterfront area with high quality of life
 
 ## Customization
 
